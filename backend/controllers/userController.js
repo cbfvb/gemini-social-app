@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import generateTokenAndSetCookie from "../utils/helpers/jwtcookie.js";
 import AWS from "aws-sdk";
 import mongoose from "mongoose";
-
+import Follow from "../models/followingschema.js";
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -120,26 +120,30 @@ const logoutUser = (req, res) => {
   }
 };
 
+
+
 const followUnFollowUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const userToModify = await User.findById(id);
-    const currentUser = await User.findById(req.user._id);
+    const currentUserId = req.user._id;
 
-    if (id === req.user._id.toString())
+    if (id === currentUserId.toString())
       return res.json({ error: "You cannot follow/unfollow yourself" });
 
-    if (!userToModify || !currentUser) return res.json({ error: "User not found" });
+    const existingFollow = await Follow.findOne({
+      follower: currentUserId,
+      following: id,
+    });
 
-    const isFollowing = currentUser.following.includes(id);
-
-    if (isFollowing) {
-      await User.findByIdAndUpdate(id, { $pull: { followers: req.user._id } });
-      await User.findByIdAndUpdate(req.user._id, { $pull: { following: id } });
+    if (existingFollow) {
+      await Follow.deleteOne({ _id: existingFollow._id });
       res.json({ message: "User unfollowed successfully" });
     } else {
-      await User.findByIdAndUpdate(id, { $push: { followers: req.user._id } });
-      await User.findByIdAndUpdate(req.user._id, { $push: { following: id } });
+      const newFollow = new Follow({
+        follower: currentUserId,
+        following: id,
+      });
+      await newFollow.save();
       res.json({ message: "User followed successfully" });
     }
   } catch (err) {
@@ -222,32 +226,29 @@ const freezeAccount = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-const getSuggestedUsers = async (req, res) => {
-	try {
-	  const userId = req.user._id;
+
+  const getSuggestedUsers = async (req, res) => {
+    try {
+      const userId = req.user._id;
   
-	  const usersFollowedByYou = await User.findById(userId).select("following");
+      const followingIds = await Follow.find({ follower: userId }).select('following');
   
-	  const users = await User.aggregate([
-		{
-		  $match: {
-			_id: { $ne: userId },
-		  },
-		},
-		{
-		  $sample: { size: 10 },
-		},
-	  ]);
-	  const filteredUsers = users.filter((user) => !usersFollowedByYou.following.includes(user._id));
-	  const suggestedUsers = filteredUsers.slice(0, 4);
+      const followingIdsArray = followingIds.map(follow => follow.following);
   
-	  suggestedUsers.forEach((user) => (user.password = null));
+      const users = await User.aggregate([
+        { $match: { _id: { $ne: userId, $nin: followingIdsArray } } },
+        { $sample: { size: 10 } },
+      ]);
   
-	  res.status(200).json(suggestedUsers);
-	} catch (error) {
-	  res.status(500).json({ error: error.message });
-	}
+      const suggestedUsers = users.slice(0, 4);
+      suggestedUsers.forEach(user => (user.password = null));
+  
+      res.status(200).json(suggestedUsers);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
   };
+  
 export {
   signupUser,
   loginUser,

@@ -2,7 +2,7 @@ import Post from "../models/postschema.js";
 import User from "../models/userschema.js";
 import AWS from "aws-sdk";
 import { v4 as uuidv4 } from "uuid"; 
-
+import Follow from "../models/followingschema.js";
 
 const s3 = new AWS.S3({
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -163,24 +163,26 @@ const likeUnlikePost = async (req, res) => {
 		res.json({ error: err.message });
 	}
 };
+
 const getFeedPosts = async (req, res) => {
 	try {
-		const userId = req.user._id;
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.json({ error: "User not found" });
-		}
-
-		const following = user.following;
-
-		const feedPosts = await Post.find({ postedBy: { $in: following } }).sort({ createdAt: -1 });
-
-		res.json(feedPosts);
+	  const userId = req.user._id;
+	  const user = await User.findById(userId);
+	  if (!user) {
+		return res.json({ error: "User not found" });
+	  }
+  
+	  const following = await Follow.find({ follower: userId }).select('following');
+  
+	  const followingIds = following.map(follow => follow.following);
+  
+	  const feedPosts = await Post.find({ postedBy: { $in: followingIds } }).sort({ createdAt: -1 });
+  
+	  res.json(feedPosts);
 	} catch (err) {
-		res.json({ error: err.message });
+	  res.json({ error: err.message });
 	}
-};
-
+  };
 const getUserPosts = async (req, res) => {
 	const { username } = req.params;
 	try {
