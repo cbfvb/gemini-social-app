@@ -19,6 +19,45 @@ export const getRecipientSocketId = (recipientId) => {
 
 const userSocketMap = {}; // userId: socketId
 
+
+const uniqueRecipientRateLimiter = (limit, timeWindow) => {
+  const userRecipientMap = {};
+
+  return (socket, next) => {
+    const userId = socket.handshake.query.userId;
+
+    if (!userRecipientMap[userId]) {
+      userRecipientMap[userId] = { recipients: new Set(), lastReset: Date.now() };
+    }
+
+    socket.checkRateLimit = (recipientId) => {
+      const now = Date.now();
+      const userRateLimit = userRecipientMap[userId];
+
+      // Reset the recipient set if the time window has passed
+      if (now - userRateLimit.lastReset > timeWindow) {
+        userRateLimit.recipients.clear();
+        userRateLimit.lastReset = now;
+      }
+
+      // Add recipient to the set
+      userRateLimit.recipients.add(recipientId);
+
+      // Check if the number of unique recipients exceeds the limit
+      if (userRateLimit.recipients.size > limit) {
+        socket.emit('rateLimit', { message: 'You are messaging too many different accounts. Please slow down.' });
+        return false;
+      }
+
+      return true;
+    };
+
+    next();
+  };
+};
+
+io.use(uniqueRecipientRateLimiter(10, 60 * 1000)); // Limit to 10 unique recipients per minute
+
 io.on("connection", (socket) => {
 	console.log("user connected", socket.id);
 	const userId = socket.handshake.query.userId;
