@@ -8,11 +8,11 @@ import {
 	updateUser,
 	getSuggestedUsers,
 	freezeAccount,
-} from "../controllers/userController.js";
-import protectRoute from "../middlewares/protectRoute.js";
+} from "../controllers/user.Controller.js";
+import protectRoute from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
-const rateLimit = require('express-rate-limit');
+import rateLimit from 'express-rate-limit';
 
 const authLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, 
