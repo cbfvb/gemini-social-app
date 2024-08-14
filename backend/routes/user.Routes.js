@@ -17,7 +17,7 @@ import rateLimit from 'express-rate-limit';
 const authLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, 
 	max: 5, 
-	message: 'Too many login attempts from this IP, please try again after 15 minutes'
+	message: 'Too many attempts from this IP, please try again after 15 minutes'
   });
   
   const messageLimiter = rateLimit({
@@ -33,13 +33,13 @@ const authLimiter = rateLimit({
   });
 
 
-router.get("/profile/:query", getUserProfile);
-router.get("/suggested", protectRoute, getSuggestedUsers);
+router.get("/profile/:query",authLimiter, getUserProfile);
+router.get("/suggested",authLimiter, protectRoute, getSuggestedUsers);
 router.post("/signup",accountCreationLimiter, signupUser);
 router.post("/login",authLimiter, loginUser);
-router.post("/logout", logoutUser);
-router.post("/follow/:id", protectRoute, followUnFollowUser);
-router.put("/update/:id", protectRoute, updateUser);
-router.put("/freeze", protectRoute, freezeAccount);
+router.post("/logout", authLimiter,logoutUser);
+router.post("/follow/:id",authLimiter, protectRoute, followUnFollowUser);
+router.put("/update/:id",authLimiter, protectRoute, updateUser);
+router.put("/freeze",authLimiter, protectRoute, freezeAccount);
 
 export default router;

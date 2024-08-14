@@ -17,7 +17,7 @@ export const getRecipientSocketId = (recipientId) => {
 	return userSocketMap[recipientId];
 };
 
-const userSocketMap = {}; // userId: socketId
+const userSocketMap = {}; 
 
 
 const uniqueRecipientRateLimiter = (limit, timeWindow) => {
@@ -34,16 +34,16 @@ const uniqueRecipientRateLimiter = (limit, timeWindow) => {
       const now = Date.now();
       const userRateLimit = userRecipientMap[userId];
 
-      // Reset the recipient set if the time window has passed
+    
       if (now - userRateLimit.lastReset > timeWindow) {
         userRateLimit.recipients.clear();
         userRateLimit.lastReset = now;
       }
 
-      // Add recipient to the set
+ 
       userRateLimit.recipients.add(recipientId);
 
-      // Check if the number of unique recipients exceeds the limit
+     
       if (userRateLimit.recipients.size > limit) {
         socket.emit('rateLimit', { message: 'You are messaging too many different accounts. Please slow down.' });
         return false;
@@ -56,7 +56,7 @@ const uniqueRecipientRateLimiter = (limit, timeWindow) => {
   };
 };
 
-io.use(uniqueRecipientRateLimiter(10, 60 * 1000)); // Limit to 10 unique recipients per minute
+io.use(uniqueRecipientRateLimiter(10, 60 * 1000)); 
 
 io.on("connection", (socket) => {
 	console.log("user connected", socket.id);
