@@ -1,8 +1,8 @@
 import { Server } from "socket.io";
 import http from "http";
 import express from "express";
-import Message from "../models/messageschema.js";
-import Conversation from "../models/conversationschema.js";
+import Message from "../models/message.schema.js";
+import Conversation from "../models/conversation.schema.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -17,7 +17,46 @@ export const getRecipientSocketId = (recipientId) => {
 	return userSocketMap[recipientId];
 };
 
-const userSocketMap = {}; // userId: socketId
+const userSocketMap = {}; 
+
+
+const uniqueRecipientRateLimiter = (limit, timeWindow) => {
+  const userRecipientMap = {};
+
+  return (socket, next) => {
+    const userId = socket.handshake.query.userId;
+
+    if (!userRecipientMap[userId]) {
+      userRecipientMap[userId] = { recipients: new Set(), lastReset: Date.now() };
+    }
+
+    socket.checkRateLimit = (recipientId) => {
+      const now = Date.now();
+      const userRateLimit = userRecipientMap[userId];
+
+    
+      if (now - userRateLimit.lastReset > timeWindow) {
+        userRateLimit.recipients.clear();
+        userRateLimit.lastReset = now;
+      }
+
+ 
+      userRateLimit.recipients.add(recipientId);
+
+     
+      if (userRateLimit.recipients.size > limit) {
+        socket.emit('rateLimit', { message: 'You are messaging too many different accounts. Please slow down.' });
+        return false;
+      }
+
+      return true;
+    };
+
+    next();
+  };
+};
+
+io.use(uniqueRecipientRateLimiter(10, 60 * 1000)); 
 
 io.on("connection", (socket) => {
 	console.log("user connected", socket.id);

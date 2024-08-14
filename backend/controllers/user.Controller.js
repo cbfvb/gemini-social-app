@@ -1,10 +1,10 @@
-import User from "../models/userschema.js";
-import Post from "../models/postschema.js";
+import User from "../models/user.schema.js";
+import Post from "../models/post.schema.js";
 import bcrypt from "bcryptjs";
 import generateTokenAndSetCookie from "../utils/helpers/jwtcookie.js";
 import AWS from "aws-sdk";
 import mongoose from "mongoose";
-import Follow from "../models/followingschema.js";
+import Follow from "../models/following.schema.js";
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,

@@ -1,5 +1,5 @@
-import Conversation from "../models/conversationschema.js";
-import Message from "../models/messageschema.js";
+import Conversation from "../models/conversation.schema.js";
+import Message from "../models/message.schema.js";
 import { getRecipientSocketId, io } from "../socket/socket.js";
 import AWS from "aws-sdk";
 import { v4 as uuidv4 } from "uuid"; 

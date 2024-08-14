@@ -1,8 +1,8 @@
-import Post from "../models/postschema.js";
-import User from "../models/userschema.js";
+import Post from "../models/post.schema.js";
+import User from "../models/user.schema.js";
 import AWS from "aws-sdk";
 import { v4 as uuidv4 } from "uuid"; 
-import Follow from "../models/followingschema.js";
+import Follow from "../models/following.schema.js";
 
 const s3 = new AWS.S3({
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
